@@ -10,14 +10,13 @@
 
 services:
   health:
-    build: .
+    image: ghcr.io/nixfred/apple-health-dashboard:latest
     container_name: apple-health-dashboard
     restart: unless-stopped
     ports:
       - "8880:8880"        # host_port:container_port — change host port if 8880 is taken
     volumes:
-      - ./data:/app/data         # SQLite DB + raw JSONL backup persist here
-      - ./public:/app/public     # bind-mount HTML so frontend edits are live without rebuild
+      - ./data:/app/data # SQLite DB + raw JSONL backup persist here
     deploy:
       resources:
         limits:
