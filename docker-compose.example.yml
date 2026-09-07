@@ -13,6 +13,8 @@ services:
     image: ghcr.io/nixfred/apple-health-dashboard:latest
     container_name: apple-health-dashboard
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "8880:8880"        # host_port:container_port — change host port if 8880 is taken
     volumes:
