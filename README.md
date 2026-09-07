@@ -64,6 +64,7 @@ The server is reachable on your local network — your iPhone needs to be able t
 git clone https://github.com/<your-username>/apple-health-dashboard.git
 cd apple-health-dashboard
 cp docker-compose.example.yml docker-compose.yml   # edit if you need to change ports
+cp .env.example .env # edit and add carto.com map api key or leave blank
 docker compose up -d --build
 
 # verify
