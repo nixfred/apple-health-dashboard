@@ -379,6 +379,33 @@
   <footer>Apple Health Dashboard · self-hosted · Apple Watch → Health Auto Export → SQLite</footer>
 
   <script>
+    // CARTO runtime config — key comes from server.ts /api/config, backed by .env
+    let CARTO_API_KEY = '';
+    const CARTO_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+    async function loadRuntimeConfig(){
+      try {
+        const r = await fetch('/api/config', { cache: 'no-store' });
+        if (!r.ok) throw new Error(`Config HTTP ${r.status}`);
+        const cfg = await r.json();
+        CARTO_API_KEY = (cfg.cartoApiKey || '').trim();
+        if (!CARTO_API_KEY) console.warn('CARTO_API_KEY is not configured');
+      } catch (e) {
+        console.error('Failed to load runtime config:', e);
+      }
+    }
+
+    function addCartoBasemap(map){
+      const base = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      const url = CARTO_API_KEY ? `${base}?key=${encodeURIComponent(CARTO_API_KEY)}` : base;
+      if (!CARTO_API_KEY) console.error('CARTO basemap key missing; check /api/config and CARTO_API_KEY in .env');
+      return L.tileLayer(url, {
+        attribution: CARTO_ATTRIBUTION,
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+    }
+
     document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
       ['briefing','today','trends','workouts','sleep-tab','report','calendar'].forEach(id=>document.getElementById('tab-'+id)?.classList.add('hidden'));
@@ -679,8 +706,8 @@
           try{
             const rd=await fetchJSON(`/api/route?id=${encodeURIComponent(fw.id)}`);
             if(!rd._error&&rd.hasRoute&&rd.route?.length>0){
-              const m=L.map('ddMap',{zoomControl:true,attributionControl:false}).setView([rd.route[0].lat,rd.route[0].lon],15);
-              L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(m);
+              const m=L.map('ddMap',{zoomControl:true,attributionControl:true}).setView([rd.route[0].lat,rd.route[0].lon],15);
+              addCartoBasemap(m);
               const ll=rd.route.map(p=>[p.lat,p.lon]);
               L.polyline(ll,{color:'#00e8ff',weight:4,opacity:0.8}).addTo(m);
               L.circleMarker(ll[0],{radius:7,color:'#00ff88',fillColor:'#00ff88',fillOpacity:1}).addTo(m).bindPopup('Start');
@@ -1351,8 +1378,8 @@
               mapDiv.style.display='block';
               const mapEl=document.getElementById('brRouteMap');
               if(window._brMap){window._brMap.remove();window._brMap=null;}
-              const m=L.map(mapEl,{zoomControl:true,attributionControl:false}).setView([rd.route[0].lat,rd.route[0].lon],15);
-              L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(m);
+              const m=L.map(mapEl,{zoomControl:true,attributionControl:true}).setView([rd.route[0].lat,rd.route[0].lon],15);
+              addCartoBasemap(m);
               const latlngs=rd.route.map(p=>[p.lat,p.lon]);
               L.polyline(latlngs,{color:'#00e8ff',weight:4,opacity:0.8}).addTo(m);
               L.circleMarker(latlngs[0],{radius:7,color:'#00ff88',fillColor:'#00ff88',fillOpacity:1}).addTo(m).bindPopup('Start');
@@ -1492,8 +1519,8 @@
 
       // Initialize or reset map
       if(leafletMap){leafletMap.remove();leafletMap=null;}
-      leafletMap=L.map('routeMap',{zoomControl:true}).setView([d.route[0].lat,d.route[0].lon],15);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CartoDB',maxZoom:19}).addTo(leafletMap);
+      leafletMap=L.map('routeMap',{zoomControl:true,attributionControl:true}).setView([d.route[0].lat,d.route[0].lon],15);
+      addCartoBasemap(leafletMap);
 
       // Draw route with color gradient based on altitude
       const latlngs=d.route.map(p=>[p.lat,p.lon]);
@@ -1518,7 +1545,7 @@
     // Escape closes map modal
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('mapModal')?.classList.contains('show'))closeMap();});
 
-    loadBriefing();
+    loadRuntimeConfig().finally(loadBriefing);
     // Polling: only refresh when the tab is visible (avoid background CPU and stale renders)
     setInterval(()=>{
       if(document.hidden)return;

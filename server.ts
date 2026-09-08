@@ -1385,6 +1385,12 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/health" && req.method === "GET") return json({ status: "ok", uptime: process.uptime() });
+
+    // Browser-safe runtime config. CARTO requires the API key client-side,
+    // so expose only that key from the container environment.
+    if (url.pathname === "/api/config" && req.method === "GET") {
+      return json({ cartoApiKey: process.env.CARTO_API_KEY || "" });
+    }
     // ─── NixVitals 2.0 Endpoints ─────────────────────────
     if (url.pathname === "/api/briefing") return json(buildMorningBriefing());
     if (url.pathname === "/api/recovery") return json(buildRecoveryScore());
