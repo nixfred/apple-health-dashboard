@@ -10,8 +10,7 @@
 
 services:
   health:
-    build: .
-    #image: ghcr.io/nixfred/apple-health-dashboard:latest
+    image: ghcr.io/nixfred/apple-health-dashboard:latest
     container_name: apple-health-dashboard
     restart: unless-stopped
     env_file:
